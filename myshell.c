@@ -13,9 +13,12 @@ void handler(int sig) {
 int main(int argc, char *argv[]) {
     char line[MAX_LINE_LENGTH]; // stores entire input string
     char *tmpstr; // temp copy of input string
-    char *a[MAX_NUM_ARGS]; // stores tokens of input string
-    int i; // index
+    char *a[MAX_NUM_ARGS]; // a is an array of strings aka an array of char arrays
     char *token;
+    int val, i;
+
+
+    int last_val = 0;
 
 
     signal(SIGINT, handler);
@@ -30,7 +33,7 @@ int main(int argc, char *argv[]) {
         i = 0;
         token = strtok(tmpstr, " \t");
         while (token != NULL && i < MAX_NUM_ARGS) {
-            a[i] = token; 
+            a[i] = malloc(strlen(token)+1); 
             i++;
             token = strtok(NULL, " \t");
         }
@@ -38,7 +41,11 @@ int main(int argc, char *argv[]) {
         /* Check if the given command is internal one */
         if (strcmp(a[0], "cd") == 0) {
             if(a[1]) {
+                errno = 0;
                 chdir(a[1]);
+                if(errno != 0) {
+                    printf("%s is not a valid directory\n", a[1]); //check pointer
+                }
             }
             else {
                 chdir(getenv("HOME")); // check this
@@ -46,10 +53,20 @@ int main(int argc, char *argv[]) {
         }
 
         else if (strcmp(a[0], "exit") == 0) {
-            exit (...);
+            if(a[1]) {
+                errno = 0;
+                val = strtol(a[1], NULL, 10); // val might need to be long int
+                if(errno != 0) {
+                    printf("Invalid exit value\n");
+                }
+                else{
+                    exit(val);
+                }
+            }
+            else {
+                exit(last_val);
+            }
         }
-
-        /* check if executable exists and is executable */
 
         /* launch executable */
         if (fork() == 0) {
