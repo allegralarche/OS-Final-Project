@@ -1,13 +1,17 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <signal.h>
+#include <errno.h>
 
 #define MAX_LINE_LENGTH 1000
 #define MAX_NUM_ARGS 50
 
+pid_t cid;
+
 void handler(int sig) {
-    // terminate process
-    //new line
+    kill(cid, sig);
+    printf("\n");
 }
 
 int main(int argc, char *argv[]) {
@@ -39,7 +43,7 @@ int main(int argc, char *argv[]) {
                 errno = 0;
                 chdir(token);
                 if(errno != 0) {
-                    printf("\n%s is not a valid directory\n", token); //check pointer
+                    printf("\n%s: No such file or directory\n", token); //check pointer
                 }
             }
             else {
@@ -64,25 +68,27 @@ int main(int argc, char *argv[]) {
                 exit(last_val); // LAST VAL NEVER GETTING SET
             }
         }
-
-        /* launch executable */
-        // child process
-        if (fork() == 0) {
-            a[0] = token;
-            i = 1;
-            token = strtok(NULL, " \t");
-            while(token != NULL) {
-                a[i] = token;
-                i++;
-                token - strtok(NULL, " \t");
-            }
-            execvp(a[0], a);
-            printf("\nCommand not recognized\n");
-        }
-        // parent process
         else {
-            wait(&status);
+            /* launch executable */
+            // child process
+            if ((cid = fork()) == 0) {
+                a[0] = token;
+                i = 1;
+                token = strtok(NULL, " \t");
+                while(token != NULL) {
+                    a[i] = token;
+                    i++;
+                    token - strtok(NULL, " \t");
+                }
+                execvp(a[0], a);
+                printf("\nCommand not recognized\n");
+            }
+            // parent process
+            else {
+                wait(&status);
+            }
         }
+        
     }
     return 0;
 }
