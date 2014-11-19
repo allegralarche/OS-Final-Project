@@ -7,11 +7,13 @@
 #define MAX_LINE_LENGTH 1000
 #define MAX_NUM_ARGS 50
 
-pid_t cid;
+pid_t cid = 0;
 
 void handler(int sig) {
+  if(cid !=0) {
     kill(cid, sig);
-    printf("\n");
+  }
+  printf("MyShell>");
 }
 
 int main(int argc, char *argv[]) {
@@ -19,6 +21,7 @@ int main(int argc, char *argv[]) {
     char *a[MAX_NUM_ARGS]; // a is an array of strings aka an array of char arrays
     char *token;
     char *exec;
+    char *temp;
     int val, i, status;
 
 
@@ -30,35 +33,35 @@ int main(int argc, char *argv[]) {
     while(1) {
         /* Wait for input */
         printf("MyShell>");
-        fgets(line, MAX_LINE_LENGTH, stdin); // check return value--could be null if user just pressed enter
+        fgets(line, MAX_LINE_LENGTH, stdin); 
 
         /* Parse input */
         i = 0;
-        token = strtok(line, " \t");
+        token = strtok(line, " \t\n");
+	if(token!=NULL){
 
         /* Check if the given command is internal one */
-        if (strcmp(token, "cd") == 0) {
-            token = strtok(NULL, " \t");
-            if(token) {
+        if (strncmp(token, "cd", 2) == 0) {
+	  token = strtok(NULL, " \t\n");
+            if(token!=NULL) {
                 errno = 0;
                 chdir(token);
                 if(errno != 0) {
-                    printf("\n%s: No such file or directory\n", token); //check pointer
+                    printf("%s: No such file or directory\n", token);
                 }
             }
             else {
                 chdir(getenv("HOME")); 
-                printf("\n");
             }
         }
 
-        else if (strcmp(token, "exit") == 0) {
-            token = strtok(NULL, " \t");
-            if(token) {
+        else if (strncmp(token, "exit", 4) == 0) {
+	  token = strtok(NULL, " \t\n");
+            if(token!=NULL) {
                 errno = 0;
-                val = strtol(token, NULL, 10); // val might need to be long
+                val = strtol(token, NULL, 10); 
                 if(errno != 0) {
-                    printf("\nInvalid exit value\n");
+                    printf("Invalid exit value\n");
                 }
                 else{
                     exit(val);
@@ -70,24 +73,27 @@ int main(int argc, char *argv[]) {
         }
         else {
             /* launch executable */
+	     a[0] = token;
+             i = 1;
+             token = strtok(NULL, " \t\n");
+             while(token != NULL) {
+	       a[i] = token;
+                 i++;
+                 token = strtok(NULL, " \t\n");
+             }
+	     a[i]=NULL;
             // child process
             if ((cid = fork()) == 0) {
-                a[0] = token;
-                i = 1;
-                token = strtok(NULL, " \t");
-                while(token != NULL) {
-                    a[i] = token;
-                    i++;
-                    token - strtok(NULL, " \t");
-                }
                 execvp(a[0], a);
-                printf("\nCommand not recognized\n");
+                printf("Command not recognized\n");
+		exit(0);
             }
             // parent process
             else {
                 wait(&status);
             }
         }
+	}
         
     }
     return 0;
